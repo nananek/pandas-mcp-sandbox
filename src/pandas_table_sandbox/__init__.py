@@ -1,0 +1,1 @@
+"""Safe table-operation worker."""

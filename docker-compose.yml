@@ -1,0 +1,23 @@
+services:
+  pandas-worker:
+    build: .
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid,nodev
+    cap_drop: [ALL]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    security_opt: [no-new-privileges:true]
+    networks:
+      - sandbox
+    environment:
+      SANDBOX_MAX_FILE_BYTES: 26214400
+      SANDBOX_MAX_ROWS: 200000
+      SANDBOX_MAX_COLUMNS: 200
+    ports:
+      - "127.0.0.1:18080:8080"
+
+networks:
+  sandbox:
+    internal: true
