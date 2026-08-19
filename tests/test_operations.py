@@ -22,6 +22,18 @@ def test_groupby_and_merge():
     assert merged.to_dict("records") == [{"key": "a", "value": 3, "label": "A"}, {"key": "b", "value": 3, "label": "B"}]
 
 
+def test_groupby_alias_and_list_aggregation():
+    frame = pd.DataFrame({"region": ["east", "east", "west"], "population": [10, 20, 5]})
+    result = apply_operations(frame, [{
+        "op": "groupby",
+        "groupby": ["region"],
+        "aggregation": [{"column": "population", "function": "sum"}],
+    }])
+    assert result.to_dict("records") == [
+        {"region": "east", "population": 30}, {"region": "west", "population": 5}
+    ]
+
+
 def test_invalid_operation_is_rejected():
     with pytest.raises(OperationError):
         apply_operations(pd.DataFrame({"x": [1]}), [{"op": "execute_python", "code": "__import__('os')"}])

@@ -8,7 +8,7 @@ import pandas as pd
 ALLOWED_OPS = {
     "select_columns", "drop_columns", "filter", "sort", "rename_columns",
     "cast_type", "fill_missing", "drop_missing", "drop_duplicates",
-    "add_column", "groupby_aggregate", "pivot", "merge",
+    "add_column", "groupby", "groupby_aggregate", "pivot", "merge",
 }
 _FILTERS = {"=", "==", "!=", ">", ">=", "<", "<=", "contains", "in"}
 _DTYPES = {"string", "Int64", "Float64", "boolean", "datetime64[ns]"}
@@ -36,6 +36,8 @@ def apply_operations(
         if not isinstance(operation, dict) or operation.get("op") not in ALLOWED_OPS:
             raise OperationError("unsupported operation")
         op = operation["op"]
+        if op == "groupby":
+            op = "groupby_aggregate"
         if op == "select_columns":
             names = operation.get("columns")
             _columns(result, names)
@@ -121,7 +123,21 @@ def apply_operations(
             else:
                 result[column] = value
         elif op == "groupby_aggregate":
-            by, aggregations = operation.get("by"), operation.get("aggregations")
+            by = operation.get("by") or operation.get("groupby")
+            aggregations = (operation.get("aggregations") or operation.get("aggregation")
+                            or operation.get("agg"))
+            if aggregations is None and operation.get("column") and operation.get("function"):
+                aggregations = {operation["column"]: operation["function"]}
+            if isinstance(aggregations, list):
+                normalized: dict[str, str] = {}
+                for item in aggregations:
+                    if not isinstance(item, dict): raise OperationError("invalid aggregation")
+                    column = item.get("column") or item.get("source_column")
+                    function = item.get("function") or item.get("func") or item.get("agg")
+                    if not isinstance(column, str) or not isinstance(function, str):
+                        raise OperationError("invalid aggregation")
+                    normalized[column] = function
+                aggregations = normalized
             _columns(result, by, "by")
             if not isinstance(aggregations, dict) or not aggregations: raise OperationError("aggregations is required")
             allowed = {"sum", "mean", "min", "max", "count", "nunique", "median"}

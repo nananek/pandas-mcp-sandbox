@@ -38,3 +38,13 @@ Webページから表を取得した場合は、LLMが行列を `create_table(re
 既定でファイル25MiB、20万行、200列、1操作リクエスト30操作までです。
 入力元ファイルは変更せず、データはWorkerのメモリに保持します。Workerを公開ネットワークに
 直接公開せず、認証付きのリバースプロキシ等を併用してください。
+
+## Development
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest
+```
+
+GitHub Actions runs the same test suite and a Python compilation check on every
+push to `main` and every pull request.

@@ -77,6 +77,14 @@ def _register(frame: pd.DataFrame) -> str:
     return file_id
 
 
+def _source_table(identifier: str) -> pd.DataFrame:
+    if identifier in FILES:
+        return FILES[identifier]
+    if identifier in DATASETS:
+        return DATASETS[identifier]
+    raise HTTPException(404, "unknown file_id or dataset_id")
+
+
 def _json_value(value: Any) -> Any:
     if pd.isna(value): return None
     if hasattr(value, "item"): return value.item()
@@ -122,15 +130,14 @@ def create_table(request: RecordsRequest) -> dict[str, str]:
 
 @app.get("/v1/files/{file_id}/inspect")
 def inspect(file_id: str, preview_rows: int = 10) -> dict[str, Any]:
-    if file_id not in FILES: raise HTTPException(404, "unknown file_id")
+    frame = _source_table(file_id)
     if not 1 <= preview_rows <= MAX_PREVIEW: raise HTTPException(400, "invalid preview_rows")
-    return preview(FILES[file_id], preview_rows)
+    return preview(frame, preview_rows)
 
 
 @app.post("/v1/files/{file_id}/operations")
 def operate(file_id: str, request: OperationRequest) -> dict[str, Any]:
-    if file_id not in FILES: raise HTTPException(404, "unknown file_id")
-    try: result = apply_operations(FILES[file_id], request.operations, DATASETS)
+    try: result = apply_operations(_source_table(file_id), request.operations, DATASETS)
     except (OperationError, KeyError, TypeError, ValueError) as exc: raise HTTPException(400, str(exc)) from None
     _validate(result)
     dataset_id = secrets.token_urlsafe(18)
