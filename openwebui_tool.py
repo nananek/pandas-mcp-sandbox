@@ -30,7 +30,13 @@ class Tools:
             with urllib.request.urlopen(request, timeout=120) as response:
                 raw = response.read()
                 return json.loads(raw) if raw else None
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = json.loads(exc.read()).get("detail", "request rejected")
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                detail = "request rejected"
+            raise RuntimeError(f"Pandas Workerエラー (HTTP {exc.code}): {detail}") from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
             raise RuntimeError("Pandas Workerへの接続または処理に失敗しました") from exc
 
     async def upload_table(self, filename: str, content_base64: str) -> str:
