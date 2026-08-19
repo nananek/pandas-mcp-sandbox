@@ -12,6 +12,17 @@ Workerはread-only filesystem、非root、全capability削除、内部ネット�
 docker compose up --build -d
 ```
 
+For a deployment where Open WebUI and the worker share an existing Docker
+network, use the deployment overlay so no host port is exposed:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+```
+
+The overlay attaches the worker to the externally managed Open WebUI network.
+Configure the Tool with the worker's service URL on that network. Do not publish
+port 8080 to the host for this deployment mode.
+
 Open WebUIのToolに `openwebui_tool.py` を貼り付け、Valvesの
 `PANDAS_WORKER_URL`を設定します。Toolのアップロード入力はBase64形式です。
 実運用ではOpen WebUIのファイルAPIから取得した内容をToolに渡す薄い連携を追加してください。

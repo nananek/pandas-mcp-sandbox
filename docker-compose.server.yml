@@ -1,0 +1,12 @@
+# docker-server deployment: keep the worker reachable only from Open WebUI.
+services:
+  pandas-worker:
+    ports: !reset []
+    networks: !override
+      - openwebui
+    restart: unless-stopped
+
+networks:
+  openwebui:
+    external: true
+    name: openwebui_default
