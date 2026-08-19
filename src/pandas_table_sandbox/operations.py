@@ -94,8 +94,25 @@ def apply_operations(
             column, value = operation.get("column"), operation.get("value")
             if not isinstance(column, str) or not column or column in result.columns:
                 raise OperationError("add_column requires a new column name")
-            source = operation.get("source_column")
-            transform = operation.get("transform")
+            calculation = operation.get("calculation")
+            source = operation.get("source_column") or operation.get("source")
+            transform = operation.get("transform") or operation.get("operation")
+            if isinstance(calculation, dict):
+                source = source or calculation.get("source_column") or calculation.get("source")
+                transform = transform or calculation.get("type") or calculation.get("transform")
+            elif isinstance(calculation, str):
+                transform = transform or calculation
+            transform = transform or operation.get("formula") or operation.get("expression")
+            if transform is not None and not isinstance(transform, str):
+                raise OperationError("calculation must name a supported transform")
+            transform_aliases = {
+                "percentage_of_total": "percent_of_total",
+                "share_of_total": "percent_of_total",
+                "ratio_to_total": "percent_of_total",
+                "percent": "percent_of_total",
+                "rank": "rank_desc",
+            }
+            transform = transform_aliases.get(transform, transform)
             if transform:
                 if source not in result.columns:
                     raise OperationError("unknown source_column")
@@ -121,6 +138,8 @@ def apply_operations(
                 if operation.get("decimal_places") is not None:
                     result[column] = result[column].round(operation["decimal_places"])
             else:
+                if "value" not in operation:
+                    raise OperationError("add_column requires value or a supported calculation")
                 result[column] = value
         elif op == "groupby_aggregate":
             by = operation.get("by") or operation.get("groupby")

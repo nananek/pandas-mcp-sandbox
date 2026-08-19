@@ -48,3 +48,14 @@ def test_population_helpers_are_declarative():
     ])
     assert result["rank"].tolist() == [1, 2, 3]
     assert result["share"].tolist() == [50.0, 33.33, 16.67]
+
+
+def test_calculation_alias_is_supported_and_missing_calculation_fails():
+    frame = pd.DataFrame({"population": [3, 1]})
+    result = apply_operations(frame, [{
+        "op": "add_column", "column": "share", "source": "population",
+        "calculation": "percentage_of_total", "decimal_places": 1,
+    }])
+    assert result["share"].tolist() == [75.0, 25.0]
+    with pytest.raises(OperationError, match="supported calculation"):
+        apply_operations(frame, [{"op": "add_column", "column": "empty"}])
