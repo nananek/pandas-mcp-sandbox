@@ -48,6 +48,16 @@ class Tools:
         except (RuntimeError, KeyError) as exc:
             return f"エラー: {exc}"
 
+    async def create_table(self, records: list[dict[str, Any]]) -> str:
+        """会話やWeb取得結果のレコードから表を直接作成する。"""
+        if not records:
+            return "入力エラー: recordsが空です"
+        try:
+            result = self._request("POST", "/v1/tables", json.dumps({"records": records}, ensure_ascii=False).encode())
+            return f"表を作成しました。file_id: {result['file_id']}（{len(records)}行）"
+        except (RuntimeError, KeyError) as exc:
+            return f"エラー: {exc}"
+
     async def inspect_table(self, file_id: str, preview_rows: int = 10) -> str:
         """表の列、型、件数、欠損、重複、先頭行を確認する。"""
         try:

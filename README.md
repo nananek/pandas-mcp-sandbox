@@ -1,6 +1,6 @@
 # pandas-table-sandbox
 
-Open WebUIからCSV/XLSXを安全に操作するための、宣言的なPandas Workerです。
+Open WebUIからCSV/XLSXや会話中のレコードを安全に操作するための、宣言的なPandas Workerです。
 LLM生成Pythonコードは受け付けず、操作JSONのホワイトリストだけを実行します。
 
 ## 構成
@@ -25,11 +25,13 @@ port 8080 to the host for this deployment mode.
 
 Open WebUIのToolに `openwebui_tool.py` を貼り付け、Valvesの
 `PANDAS_WORKER_URL`を設定します。Toolのアップロード入力はBase64形式です。
-実運用ではOpen WebUIのファイルAPIから取得した内容をToolに渡す薄い連携を追加してください。
+Webページから表を取得した場合は、LLMが行列を `create_table(records)` に直接渡せます。
+ファイルアップロードのBase64変換は必須ではありません。
 
 対応操作は `select_columns`, `drop_columns`, `filter`, `sort`, `rename_columns`,
 `cast_type`, `fill_missing`, `drop_missing`, `drop_duplicates`, `add_column`,
-`groupby_aggregate`, `pivot`, `merge` です。
+`groupby_aggregate`, `pivot`, `merge` です。`add_column` には `percent_of_total`,
+`rank_desc`, `rank_asc`, `cumsum`, `multiply`, `divide` の宣言的変換もあります。
 
 ## 制限
 

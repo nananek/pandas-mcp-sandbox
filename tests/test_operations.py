@@ -25,3 +25,14 @@ def test_groupby_and_merge():
 def test_invalid_operation_is_rejected():
     with pytest.raises(OperationError):
         apply_operations(pd.DataFrame({"x": [1]}), [{"op": "execute_python", "code": "__import__('os')"}])
+
+
+def test_population_helpers_are_declarative():
+    frame = pd.DataFrame({"prefecture": ["A", "B", "C"], "population": [300, 100, 200]})
+    result = apply_operations(frame, [
+        {"op": "add_column", "column": "rank", "source_column": "population", "transform": "rank_desc"},
+        {"op": "add_column", "column": "share", "source_column": "population", "transform": "percent_of_total", "decimal_places": 2},
+        {"op": "sort", "by": ["rank"]},
+    ])
+    assert result["rank"].tolist() == [1, 2, 3]
+    assert result["share"].tolist() == [50.0, 33.33, 16.67]

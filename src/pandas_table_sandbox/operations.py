@@ -92,7 +92,34 @@ def apply_operations(
             column, value = operation.get("column"), operation.get("value")
             if not isinstance(column, str) or not column or column in result.columns:
                 raise OperationError("add_column requires a new column name")
-            result[column] = value
+            source = operation.get("source_column")
+            transform = operation.get("transform")
+            if transform:
+                if source not in result.columns:
+                    raise OperationError("unknown source_column")
+                series = result[source]
+                if transform == "percent_of_total":
+                    total = series.sum()
+                    if total == 0: raise OperationError("cannot calculate percentage of zero total")
+                    result[column] = series / total * 100
+                elif transform == "rank_desc":
+                    result[column] = series.rank(method="min", ascending=False).astype("Int64")
+                elif transform == "rank_asc":
+                    result[column] = series.rank(method="min", ascending=True).astype("Int64")
+                elif transform == "cumsum":
+                    result[column] = series.cumsum()
+                elif transform == "multiply":
+                    result[column] = series * operation.get("factor", 1)
+                elif transform == "divide":
+                    divisor = operation.get("divisor")
+                    if divisor in (None, 0): raise OperationError("divide requires a non-zero divisor")
+                    result[column] = series / divisor
+                else:
+                    raise OperationError("unsupported column transform")
+                if operation.get("decimal_places") is not None:
+                    result[column] = result[column].round(operation["decimal_places"])
+            else:
+                result[column] = value
         elif op == "groupby_aggregate":
             by, aggregations = operation.get("by"), operation.get("aggregations")
             _columns(result, by, "by")

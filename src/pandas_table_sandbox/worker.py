@@ -41,6 +41,10 @@ class ExportRequest(BaseModel):
     filename: str = Field(default="result")
 
 
+class RecordsRequest(BaseModel):
+    records: list[dict[str, Any]] = Field(min_length=1, max_length=MAX_ROWS)
+
+
 def _safe_filename(name: str) -> str:
     clean = Path(name).name
     if clean != name or clean in {"", ".", ".."} or len(clean) > 100:
@@ -64,6 +68,13 @@ def _load(raw: bytes, filename: str) -> pd.DataFrame:
     except Exception as exc: raise HTTPException(400, "could not read table") from exc
     _validate(frame)
     return frame
+
+
+def _register(frame: pd.DataFrame) -> str:
+    _validate(frame)
+    file_id = secrets.token_urlsafe(18)
+    FILES[file_id] = frame
+    return file_id
 
 
 def _json_value(value: Any) -> Any:
@@ -96,9 +107,17 @@ async def upload(file: UploadFile = File(...)) -> dict[str, str]:
         raise HTTPException(415, "unsupported MIME type")
     raw = await file.read(MAX_BYTES + 1)
     if len(raw) > MAX_BYTES: raise HTTPException(413, "file is too large")
-    file_id = secrets.token_urlsafe(18)
-    FILES[file_id] = _load(raw, filename)
-    return {"file_id": file_id}
+    return {"file_id": _register(_load(raw, filename))}
+
+
+@app.post("/v1/tables")
+def create_table(request: RecordsRequest) -> dict[str, str]:
+    """Register records supplied by an LLM or another trusted tool."""
+    try:
+        frame = pd.DataFrame.from_records(request.records)
+        return {"file_id": _register(frame)}
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(400, "could not create table from records") from exc
 
 
 @app.get("/v1/files/{file_id}/inspect")
